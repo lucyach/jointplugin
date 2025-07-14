@@ -1,0 +1,11 @@
+name: JointMaker
+api: "1.0"
+version: "3.0-FINAL"
+main: com.lucyplugin.MyPlugin
+api-version: "1.20"
+description: A cannabis plugin that converts rotten flesh to joints
+
+commands:
+  testjoints:
+    description: Test joint conversion functionality
+    usage: /testjoints [convert|give]
