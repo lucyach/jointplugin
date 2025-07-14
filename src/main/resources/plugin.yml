@@ -1,9 +1,9 @@
 name: JointMaker
 api: "1.0"
-version: "3.0-FINAL"
+version: "4.5-RANDOM-HIGHS"
 main: com.lucyplugin.MyPlugin
-api-version: "1.20"
-description: A cannabis plugin that converts rotten flesh to joints
+api-version: "1.21"
+description: A cannabis plugin with durability, lighting animation, smoking animation, contact high effects, and random high types (bad high, good high, normal high)
 
 commands:
   testjoints:
