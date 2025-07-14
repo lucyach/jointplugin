@@ -4,8 +4,6 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -21,18 +19,12 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 
 public class MyPlugin extends JavaPlugin implements Listener {
 
-    private Map<UUID, Long> smokingCooldowns = new HashMap<>();
-    private static final long SMOKING_COOLDOWN = 2000; // 2 seconds cooldown
-
     @Override
     public void onEnable() {
-        getLogger().info("=== JointMaker 4.5 STARTING (RANDOM HIGH SYSTEM) ===");
+        getLogger().info("=== JointMaker 4.8 STARTING (NO COMMANDS) ===");
         getLogger().info("JointMaker plugin has been enabled!");
         getLogger().info("Registering events...");
         getServer().getPluginManager().registerEvents(this, this);
@@ -82,12 +74,12 @@ public class MyPlugin extends JavaPlugin implements Listener {
             }
         }.runTaskTimer(this, 20L, 10L); // Run every 0.5 seconds (10 ticks)
         
-        getLogger().info("=== JointMaker 4.5 STARTUP COMPLETE - SPREAD THE LOVE! ===");
+        getLogger().info("=== JointMaker 4.8 STARTUP COMPLETE - SPREAD THE LOVE! ===");
     }
 
     @Override
     public void onDisable() {
-        getLogger().info("JointMaker 4.5 has been disabled!");
+        getLogger().info("JointMaker 4.8 has been disabled!");
     }
 
     @EventHandler
@@ -107,23 +99,6 @@ public class MyPlugin extends JavaPlugin implements Listener {
         // Then check if it's a joint to smoke
         if (isJoint(item)) {
             event.setCancelled(true);
-            
-            // Check cooldown
-            UUID playerId = player.getUniqueId();
-            long currentTime = System.currentTimeMillis();
-            
-            if (smokingCooldowns.containsKey(playerId)) {
-                long lastSmoke = smokingCooldowns.get(playerId);
-                if (currentTime - lastSmoke < SMOKING_COOLDOWN) {
-                    long remainingCooldown = (SMOKING_COOLDOWN - (currentTime - lastSmoke)) / 1000;
-                    player.sendMessage(ChatColor.RED + "You need to wait " + remainingCooldown + " more seconds before smoking again.");
-                    return;
-                }
-            }
-            
-            // Set cooldown (extended for lighting + smoking)
-            smokingCooldowns.put(playerId, currentTime);
-            
             lightAndSmokeJoint(player, item);
         }
     }
@@ -299,131 +274,59 @@ public class MyPlugin extends JavaPlugin implements Listener {
             return;
         }
         
-        // PHASE 1: LIGHTING ANIMATION
+        // IMMEDIATE EFFECTS - NO DELAYS
         
         // Play lighter sound
         player.getWorld().playSound(player.getLocation(), Sound.ITEM_FLINTANDSTEEL_USE, 0.8f, 1.2f);
         
-        // Spawn flame particles for lighting
-        player.getWorld().spawnParticle(Particle.FLAME, 
-                                       player.getLocation().add(0, 1.6, 0), // Slightly lower than head
-                                       3,
-                                       0.05, 0.05, 0.05, // Very tight spread
-                                       0.01); // Slow speed
+        // Play ignition sound
+        player.getWorld().playSound(player.getLocation(), Sound.BLOCK_FIRE_AMBIENT, 0.5f, 1.5f);
         
-        // Spawn some crit particles for lighter spark effect
+        // Play smoking sound
+        player.getWorld().playSound(player.getLocation(), Sound.ITEM_FIRECHARGE_USE, 0.5f, 1.2f);
+        
+        // Spawn all particles immediately
+        player.getWorld().spawnParticle(Particle.FLAME, 
+                                       player.getLocation().add(0, 1.6, 0),
+                                       7, // Combined flame particles
+                                       0.08, 0.08, 0.08,
+                                       0.01);
+        
         player.getWorld().spawnParticle(Particle.CRIT, 
                                        player.getLocation().add(0, 1.6, 0),
-                                       2,
-                                       0.1, 0.1, 0.1,
+                                       5, // Combined crit particles
+                                       0.15, 0.15, 0.15,
+                                       0.03);
+        
+        player.getWorld().spawnParticle(Particle.SMOKE, 
+                                       player.getLocation().add(0, 1.8, 0),
+                                       13, // Combined smoke particles
+                                       0.3, 0.3, 0.3,
                                        0.02);
         
-        // Schedule additional lighting effects
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                // More flame particles during lighting
-                player.getWorld().spawnParticle(Particle.FLAME, 
-                                               player.getLocation().add(0, 1.6, 0),
-                                               4,
-                                               0.08, 0.08, 0.08,
-                                               0.01);
-                
-                // Additional crit particles for sparks
-                player.getWorld().spawnParticle(Particle.CRIT, 
-                                               player.getLocation().add(0, 1.6, 0),
-                                               3,
-                                               0.15, 0.15, 0.15,
-                                               0.03);
-                
-                
-                // Play ignition sound
-                player.getWorld().playSound(player.getLocation(), Sound.BLOCK_FIRE_AMBIENT, 0.5f, 1.5f);
-            }
-        }.runTaskLater(this, 40L); // 2 seconds into lighting
-
-        // PHASE 2: START SMOKING (after lighting is complete)
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                smokeJoint(player, joint);
-            }
-        }.runTaskLater(this, 60L); // 3 seconds after lighting started
-    }
-
-    private void smokeJoint(Player player, ItemStack joint) {
-        // Get current hits remaining
-        int hitsLeft = getJointHits(joint);
+        player.getWorld().spawnParticle(Particle.LARGE_SMOKE, 
+                                       player.getLocation().add(0, 1.8, 0),
+                                       4,
+                                       0.2, 0.2, 0.2,
+                                       0.01);
         
-        if (hitsLeft <= 0) {
-            return;
+        // Apply effects immediately
+        ItemStack currentItem = player.getInventory().getItemInMainHand();
+        if (isJoint(currentItem)) {
+            // Apply random high type effects
+            this.applyRandomHighEffects(player);
+            
+            // Apply contact high to nearby players
+            this.applyContactHigh(player);
+            
+            // Remove the joint since it's consumed (1 hit only)
+            if (currentItem.getAmount() > 1) {
+                currentItem.setAmount(currentItem.getAmount() - 1);
+                player.getInventory().setItemInMainHand(currentItem);
+            } else {
+                player.getInventory().setItemInMainHand(null);
+            }
         }
-        
-        // Add some initial smoking particles
-        player.getWorld().spawnParticle(Particle.SMOKE, 
-                                       player.getLocation().add(0, 1.8, 0), // At head level
-                                       5,
-                                       0.1, 0.1, 0.1, // Small spread
-                                       0.01); // Slow speed
-
-        // Play initial sound
-        player.getWorld().playSound(player.getLocation(), Sound.ITEM_FIRECHARGE_USE, 0.3f, 0.8f);
-        
-        // Schedule intermediate effects during smoking
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                // More particles while inhaling
-                player.getWorld().spawnParticle(Particle.SMOKE, 
-                                               player.getLocation().add(0, 1.8, 0),
-                                               3,
-                                               0.15, 0.15, 0.15,
-                                               0.02);
-            }
-        }.runTaskLater(this, 30L); // 1.5 seconds into smoking
-        
-        // Schedule the actual smoking effects after a delay
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                // Check if player still has the joint (might have been dropped/moved)
-                ItemStack currentItem = player.getInventory().getItemInMainHand();
-                if (!isJoint(currentItem)) {
-                    return;
-                }
-                
-                // Apply random high type effects
-                MyPlugin.this.applyRandomHighEffects(player);
-                
-                // Apply contact high to nearby players
-                MyPlugin.this.applyContactHigh(player);
-                
-                // Remove the joint since it's consumed (1 hit only)
-                if (currentItem.getAmount() > 1) {
-                    currentItem.setAmount(currentItem.getAmount() - 1);
-                    player.getInventory().setItemInMainHand(currentItem);
-                } else {
-                    player.getInventory().setItemInMainHand(null);
-                }
-                
-                // Play fire charge sound effect
-                player.getWorld().playSound(player.getLocation(), Sound.ITEM_FIRECHARGE_USE, 0.5f, 1.2f);
-                
-                // Spawn smoke particles
-                player.getWorld().spawnParticle(Particle.SMOKE, 
-                                               player.getLocation().add(0, 1.8, 0), // At head level
-                                               8, // Standard smoke amount
-                                               0.3, 0.3, 0.3, // Spread (x, y, z)
-                                               0.02); // Speed
-                
-                // Additional puff of smoke
-                player.getWorld().spawnParticle(Particle.LARGE_SMOKE, 
-                                               player.getLocation().add(0, 1.8, 0), // At head level
-                                               4, // Standard large smoke amount
-                                               0.2, 0.2, 0.2, // Spread (x, y, z)
-                                               0.01); // Speed
-            }
-        }.runTaskLater(this, 60L); // 3 second delay for smoking animation
     }
 
     private void applyContactHigh(Player smoker) {
@@ -500,9 +403,24 @@ public class MyPlugin extends JavaPlugin implements Listener {
     }
 
     private void applyRandomHighEffects(Player player) {
-        // Simplified for 1-hit joints - standard duration and amplifier
-        int baseDuration = 300; // 15 seconds standard duration
+        // Check for existing effects to determine stacking behavior
+        int baseDuration = 300; // 15 seconds base duration
         int baseAmplifier = 1; // Level 1 effects
+        
+        // Check if player already has high effects and increase accordingly
+        if (player.hasPotionEffect(PotionEffectType.HUNGER) || 
+            player.hasPotionEffect(PotionEffectType.SLOW_FALLING) ||
+            player.hasPotionEffect(PotionEffectType.SLOWNESS)) {
+            
+            // Player is already high - extend duration and potentially increase amplifier
+            baseDuration = 450; // Extend to 22.5 seconds
+            
+            // Check current amplifier levels and increase if possible
+            PotionEffect existingHunger = player.getPotionEffect(PotionEffectType.HUNGER);
+            if (existingHunger != null && existingHunger.getAmplifier() < 3) {
+                baseAmplifier = existingHunger.getAmplifier() + 1; // Increase amplifier up to level 3
+            }
+        }
         
         // Generate random number to determine high type
         double randomChance = Math.random(); // 0.0 to 1.0
@@ -523,13 +441,13 @@ public class MyPlugin extends JavaPlugin implements Listener {
         // BAD HIGH: Greening out effects
         player.sendMessage(ChatColor.DARK_RED + "BAD HIGH: you're greening out!");
         
-        // Apply all effects with same duration (15 seconds = 300 ticks)
+        // Apply all effects with same duration (15+ seconds = 300+ ticks)
         player.addPotionEffect(new PotionEffect(PotionEffectType.HUNGER, baseDuration, baseAmplifier));
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_FALLING, baseDuration, 0));
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, baseDuration, baseAmplifier));
         
         // Add bad high specific effects (same duration as base effects)
-        player.addPotionEffect(new PotionEffect(PotionEffectType.NAUSEA, baseDuration, 1));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.NAUSEA, baseDuration, Math.min(baseAmplifier, 2))); // Cap nausea at level 2
         player.addPotionEffect(new PotionEffect(PotionEffectType.LEVITATION, baseDuration, 0));
         
         // Play a disturbing sound
@@ -545,16 +463,16 @@ public class MyPlugin extends JavaPlugin implements Listener {
     
     private void applyGoodHigh(Player player, int baseDuration, int baseAmplifier) {
         // GOOD HIGH: Chiefed hard effects
-        player.sendMessage(ChatColor.GOLD + "GOOD HIGH: Damn, you chiefed hard!");
+        player.sendMessage(ChatColor.GOLD + "GOOD HIGH: You chiefed hard!");
         
-        // Apply all effects with same duration (15 seconds = 300 ticks)
+        // Apply all effects with same duration (15+ seconds = 300+ ticks)
         player.addPotionEffect(new PotionEffect(PotionEffectType.HUNGER, baseDuration, baseAmplifier));
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_FALLING, baseDuration, 0));
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, baseDuration, baseAmplifier));
         
         // Add good high specific effects (same duration as base effects)
-        player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, baseDuration, 2));
-        player.addPotionEffect(new PotionEffect(PotionEffectType.LUCK, baseDuration, 1));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, baseDuration, Math.min(baseAmplifier + 1, 4))); // Scale jump boost, cap at level 4
+        player.addPotionEffect(new PotionEffect(PotionEffectType.LUCK, baseDuration, Math.min(baseAmplifier, 3))); // Scale luck, cap at level 3
         
         // Play a positive sound
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.7f, 1.2f);
@@ -576,123 +494,12 @@ public class MyPlugin extends JavaPlugin implements Listener {
     
     private void applyNormalHigh(Player player, int baseDuration, int baseAmplifier) {
         // NORMAL HIGH: Standard effects (hunger, slowness, slow falling)
-        
-        // Apply all effects with same duration (15 seconds = 300 ticks)
+        player.sendMessage(ChatColor.GOLD + "NORMAL HIGH: You're feeling it!");
+
+        // Apply all effects with same duration (15+ seconds = 300+ ticks)
         player.addPotionEffect(new PotionEffect(PotionEffectType.HUNGER, baseDuration, baseAmplifier));
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_FALLING, baseDuration, 0));
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, baseDuration, baseAmplifier));
         
-    }
-
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (command.getName().equalsIgnoreCase("testjoints")) {
-            // Basic connectivity test
-            
-            if (args.length == 0) {
-                sender.sendMessage(ChatColor.GREEN + "LucyPlugin is working! Server can see your commands.");
-                return true;
-            }
-            
-            if (args.length > 0 && args[0].equalsIgnoreCase("convert")) {
-                // Manual conversion test
-                for (Player player : getServer().getOnlinePlayers()) {
-                    convertRottenFleshToJoints(player);
-                }
-                sender.sendMessage(ChatColor.GREEN + "Manual conversion test completed. Check console for details.");
-                return true;
-            } else if (args.length > 0 && args[0].equalsIgnoreCase("give")) {
-                // Give rotten flesh test
-                if (sender instanceof Player) {
-                    Player player = (Player) sender;
-                    ItemStack rottenFlesh = new ItemStack(Material.ROTTEN_FLESH, 5);
-                    player.getInventory().addItem(rottenFlesh);
-                    sender.sendMessage(ChatColor.YELLOW + "Gave you 5 rotten flesh. They should convert automatically.");
-                } else {
-                    sender.sendMessage("This command can only be used by players.");
-                }
-                return true;
-            } else if (args.length > 0 && args[0].equalsIgnoreCase("joint")) {
-                // Give joints directly for testing
-                if (sender instanceof Player) {
-                    Player player = (Player) sender;
-                    ItemStack joint = createJoint(1); // Give joint with 1 hit
-                    joint.setAmount(3); // Give 3 joints
-                    player.getInventory().addItem(joint);
-                    sender.sendMessage(ChatColor.GREEN + "Gave you 3 joints (1 hit each)!");
-                } else {
-                    sender.sendMessage("This command can only be used by players.");
-                }
-                return true;
-            } else if (args.length > 0 && args[0].equalsIgnoreCase("badhigh")) {
-                // Force a bad high for testing
-                if (sender instanceof Player) {
-                    Player player = (Player) sender;
-                    player.sendMessage(ChatColor.YELLOW + "Forcing a BAD HIGH for testing...");
-                    applyBadHigh(player, 300, 1); // 15 second duration, level 1 amplifier
-                } else {
-                    sender.sendMessage("This command can only be used by players.");
-                }
-                return true;
-            } else if (args.length > 0 && args[0].equalsIgnoreCase("goodhigh")) {
-                // Force a good high for testing
-                if (sender instanceof Player) {
-                    Player player = (Player) sender;
-                    player.sendMessage(ChatColor.YELLOW + "Forcing a GOOD HIGH for testing...");
-                    applyGoodHigh(player, 300, 1); // 15 second duration, level 1 amplifier
-                } else {
-                    sender.sendMessage("This command can only be used by players.");
-                }
-                return true;
-            } else if (args.length > 0 && args[0].equalsIgnoreCase("normalhigh")) {
-                // Force a normal high for testing
-                if (sender instanceof Player) {
-                    Player player = (Player) sender;
-                    player.sendMessage(ChatColor.YELLOW + "Forcing a NORMAL HIGH for testing...");
-                    applyNormalHigh(player, 300, 1); // 15 second duration, level 1 amplifier
-                } else {
-                    sender.sendMessage("This command can only be used by players.");
-                }
-                return true;
-            } else if (args.length > 0 && args[0].equalsIgnoreCase("randomtest")) {
-                // Test the random high system multiple times
-                if (sender instanceof Player) {
-                    Player player = (Player) sender;
-                    player.sendMessage(ChatColor.AQUA + "Testing random high system 10 times...");
-                    
-                    int badCount = 0, goodCount = 0, normalCount = 0;
-                    for (int i = 0; i < 10; i++) {
-                        double randomChance = Math.random();
-                        if (randomChance < 0.10) {
-                            badCount++;
-                        } else if (randomChance < 0.30) {
-                            goodCount++;
-                        } else {
-                            normalCount++;
-                        }
-                    }
-                    
-                    player.sendMessage(ChatColor.RED + "Bad highs: " + badCount + "/10");
-                    player.sendMessage(ChatColor.GOLD + "Good highs: " + goodCount + "/10");
-                    player.sendMessage(ChatColor.GREEN + "Normal highs: " + normalCount + "/10");
-                } else {
-                    sender.sendMessage("This command can only be used by players.");
-                }
-                return true;
-            } else {
-                sender.sendMessage(ChatColor.YELLOW + "Usage:");
-                sender.sendMessage(ChatColor.YELLOW + "/testjoints - Basic test");
-                sender.sendMessage(ChatColor.YELLOW + "/testjoints convert - Force conversion test");
-                sender.sendMessage(ChatColor.YELLOW + "/testjoints give - Give yourself rotten flesh");
-                sender.sendMessage(ChatColor.YELLOW + "/testjoints joint - Give yourself joints directly");
-                sender.sendMessage(ChatColor.GOLD + "=== Random High Testing ===");
-                sender.sendMessage(ChatColor.YELLOW + "/testjoints badhigh - Force bad high effects");
-                sender.sendMessage(ChatColor.YELLOW + "/testjoints goodhigh - Force good high effects");
-                sender.sendMessage(ChatColor.YELLOW + "/testjoints normalhigh - Force normal high effects");
-                sender.sendMessage(ChatColor.YELLOW + "/testjoints randomtest - Test random distribution");
-                return true;
-            }
-        }
-        return false;
     }
 }

@@ -1,11 +1,6 @@
 name: JointMaker
 api: "1.0"
-version: "4.5-RANDOM-HIGHS"
+version: "4.8-NO-COMMANDS"
 main: com.lucyplugin.MyPlugin
 api-version: "1.21"
 description: A cannabis plugin with durability, lighting animation, smoking animation, contact high effects, and random high types (bad high, good high, normal high)
-
-commands:
-  testjoints:
-    description: Test joint conversion functionality
-    usage: /testjoints [convert|give]

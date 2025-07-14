@@ -8,12 +8,11 @@
 5. [Animation System](#animation-system)
 6. [Effect System](#effect-system)
 7. [Social Features](#social-features)
-8. [Command System](#command-system)
-9. [Configuration](#configuration)
-10. [Performance & Optimization](#performance--optimization)
-11. [Development Notes](#development-notes)
-12. [Deployment Guide](#deployment-guide)
-13. [Troubleshooting](#troubleshooting)
+8. [Configuration](#configuration)
+9. [Performance & Optimization](#performance--optimization)
+10. [Development Notes](#development-notes)
+11. [Deployment Guide](#deployment-guide)
+12. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -22,12 +21,23 @@
 ### Plugin Purpose
 JointMaker is a comprehensive Minecraft cannabis simulation plugin that provides realistic smoking mechanics, social interactions, and varied gameplay experiences. It transforms the mundane rotten flesh item into an interactive joint system with sophisticated animations, random effects, and multiplayer social features.
 
+**Latest Major Updates (v4.7-4.8)**:
+- **Instant Effects**: Zero delay between right-click and effect application
+- **Effect Stacking**: Duration extension and amplifier progression system
+- **No Cooldowns**: Removed all smoking restrictions for rapid consumption
+- **Performance Optimized**: 20% smaller JAR, streamlined code execution
+- **Enhanced UX**: Immediate gratification and progressive enhancement feedback
+- **No Test Commands**: Removed all `/testjoints` commands for production-ready deployment
+
 ### Version History
 - **v4.0**: Initial MC 1.21.7 compatibility
 - **v4.1-4.2**: Multi-hit durability system
 - **v4.3**: Realistic lighting animations
 - **v4.4**: Contact high social system
-- **v4.5**: Random high variations (current)
+- **v4.5**: Random high variations
+- **v4.6**: Stacking system implementation
+- **v4.7**: Instant effect system
+- **v4.8**: Removed test commands (current)
 
 ### Target Audience
 - Minecraft servers with mature audiences
@@ -63,8 +73,8 @@ JointMaker is a comprehensive Minecraft cannabis simulation plugin that provides
 ### Design Patterns Used
 - **Event-Driven Architecture**: Bukkit event system for player interactions
 - **Persistent Data Containers**: NBT-based item identification and data storage
-- **Scheduled Tasks**: BukkitRunnable for animations and continuous effects
-- **State Management**: HashMap-based cooldown tracking
+- **Instant Effect System**: Immediate application of effects and animations
+- **Effect Stacking**: Duration extension and amplifier progression
 - **Random Generation**: Math.random() for effect distribution
 
 ---
@@ -111,22 +121,54 @@ private void convertRottenFleshToJoints(Player player) {
 - Consistent effect delivery
 - Reduced server overhead
 
-### 3. Realistic Smoking Mechanics
-**Two-Phase Animation System**:
+### 3. Instant Effect System
+**Revolutionary Response Time**:
+- **Zero Delay**: Right-click → immediate effects, sounds, and particles
+- **Consolidated Application**: All effects applied simultaneously
+- **Optimized Performance**: Removed BukkitRunnable scheduling overhead
+- **Enhanced User Experience**: No waiting between interaction and gratification
 
-**Phase 1 - Lighting** (Currently with delays, user requested removal):
-- Flint & steel lighter sound
-- Flame particles at head level
-- Critical hit spark particles
-- Fire ambient ignition sound
-- 2-second lighting duration
+**Previous vs Current**:
+- **Old System**: 3-second delay between right-click and effects
+- **New System**: Instant application of all effects, sounds, and particles
+- **User Feedback**: "There is a delay between the (right click and light sfx) and the (actual effects and chat messages). Remove that delay" - SOLVED
 
-**Phase 2 - Smoking**:
-- Multiple smoking particle effects
-- Fire charge audio cues
-- 3-second smoking animation
-- Effect application timing
-- Joint consumption
+### 4. Effect Stacking System
+**Advanced Duration Management**:
+- **Base Duration**: 15 seconds (300 ticks) for first use
+- **Stacking Logic**: Each additional joint adds 50% more time
+  - First Joint: 15 seconds
+  - Second Joint: 22.5 seconds (15 + 7.5)
+  - Third Joint: 30 seconds (22.5 + 7.5)
+- **Amplifier Progression**: Effects become stronger with repeated use
+  - Level 1 → Level 2 → Level 3 (maximum)
+
+**User Feedback Messages**:
+```java
+"Your high is getting stronger! (Level 2)"
+"You're reaching maximum high levels! (Level 3)"
+```
+
+**No Cooldowns**: Removed all cooldown restrictions for rapid consumption
+
+### 5. Realistic Smoking Mechanics
+**Optimized Single-Phase System**:
+
+**Optimized Single-Phase System**:
+
+**Instant Application**:
+- Flint & steel lighter sound (immediate)
+- Flame particles at head level (immediate)
+- Critical hit spark particles (immediate)
+- Fire ambient ignition sound (immediate)
+- Effect application (immediate)
+- Joint consumption (immediate)
+
+**Removed Delays**:
+- ❌ 2-second lighting duration
+- ❌ 3-second smoking animation
+- ❌ Separated effect timing
+- ✅ Everything happens instantly on right-click
 
 **Particle Effects Used**:
 - `FLAME`: Lighter flame simulation
@@ -261,6 +303,48 @@ player.getWorld().spawnParticle(Particle.CRIT, location, 2, 0.1, 0.1, 0.1, 0.02)
 
 ## Effect System
 
+### Stacking System (v4.6+)
+**Advanced Duration and Amplifier Management**:
+
+**Duration Stacking Logic**:
+```java
+// Check for existing effects and calculate stacking
+if (player.hasPotionEffect(PotionEffectType.HUNGER)) {
+    PotionEffect existing = player.getPotionEffect(PotionEffectType.HUNGER);
+    int remainingTime = existing.getDuration();
+    int newAmplifier = Math.min(existing.getAmplifier() + 1, 2); // Max level 3 (amplifier 2)
+    
+    // Extend duration by 50% of base duration (7.5 seconds)
+    int stackedDuration = remainingTime + (baseDuration / 2);
+    
+    // Apply enhanced effects with new duration and amplifier
+    applyStackedEffects(player, stackedDuration, newAmplifier);
+} else {
+    // First time - apply normal duration and base amplifier
+    applyRandomHighEffects(player, baseDuration, baseAmplifier);
+}
+```
+
+**Stacking Progression Example**:
+- **First Joint**: 15 seconds, Level 1 effects
+- **Second Joint** (within 15s): 22.5 seconds remaining, Level 2 effects
+- **Third Joint** (within 22.5s): 30 seconds remaining, Level 3 effects (maximum)
+
+**Player Feedback Messages**:
+```java
+if (newAmplifier == 1) {
+    player.sendMessage(ChatColor.YELLOW + "Your high is getting stronger! (Level 2)");
+} else if (newAmplifier == 2) {
+    player.sendMessage(ChatColor.RED + "You're reaching maximum high levels! (Level 3)");
+}
+```
+
+**Benefits of Stacking**:
+- **No Cooldowns**: Players can smoke immediately after previous joints
+- **Progressive Enhancement**: Effects become stronger with repeated use
+- **Extended Duration**: Each joint adds significant time to the high
+- **Maximum Limits**: Prevents infinite stacking (Level 3 cap)
+
 ### Random High Distribution
 **Probability System**:
 ```java
@@ -281,8 +365,11 @@ if (randomChance < 0.10) {
 ### Effect Standardization
 **Current Configuration**:
 - **Base Duration**: 300 ticks (15 seconds)
-- **Base Amplifier**: Level 1 for most effects
+- **Stacked Duration**: Base + 50% per additional joint (22.5s, 30s, etc.)
+- **Base Amplifier**: Level 1 for most effects, progressively increases
+- **Maximum Amplifier**: Level 3 (amplifier value 2)
 - **Synchronized Timing**: All effects start and end together
+- **Instant Application**: Zero delay between right-click and effect activation
 
 ### Normal High Effects
 **Standard Cannabis Simulation**:
@@ -427,78 +514,16 @@ private void applyContactHigh(Player smoker) {
 
 ---
 
-## Command System
-
-### Primary Command: `/testjoints`
-**Base Command**: Basic connectivity test
-```java
-/testjoints
-// Output: "LucyPlugin is working! Server can see your commands."
-```
-
-### Subcommands
-
-**Item Management**:
-```java
-/testjoints convert    // Force manual conversion of all rotten flesh
-/testjoints give      // Give 5 rotten flesh (auto-converts)
-/testjoints joint     // Give 3 pre-made joints directly
-```
-
-**Effect Testing**:
-```java
-/testjoints badhigh    // Force bad high effects (15 seconds, level 1)
-/testjoints goodhigh   // Force good high effects (15 seconds, level 1)
-/testjoints normalhigh // Force normal high effects (15 seconds, level 1)
-/testjoints randomtest // Test random distribution 10 times
-```
-
-### Command Implementation
-```java
-@Override
-public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-    if (command.getName().equalsIgnoreCase("testjoints")) {
-        if (args.length == 0) {
-            // Basic connectivity test
-            sender.sendMessage(ChatColor.GREEN + "LucyPlugin is working! Server can see your commands.");
-            return true;
-        }
-        
-        // Handle subcommands with extensive validation
-        // Player-only commands check (sender instanceof Player)
-        // Argument parsing and validation
-        // Comprehensive help system
-    }
-    return false;
-}
-```
-
-### Random Test Output
-```java
-// Example output from /testjoints randomtest
-player.sendMessage(ChatColor.AQUA + "Testing random high system 10 times...");
-player.sendMessage(ChatColor.RED + "Bad highs: " + badCount + "/10");
-player.sendMessage(ChatColor.GOLD + "Good highs: " + goodCount + "/10");
-player.sendMessage(ChatColor.GREEN + "Normal highs: " + normalCount + "/10");
-```
-
----
-
 ## Configuration
 
 ### plugin.yml Configuration
 ```yaml
 name: JointMaker
 api: "1.0"
-version: "4.5-RANDOM-HIGHS"
+version: "4.8-NO-COMMANDS"
 main: com.lucyplugin.MyPlugin
 api-version: "1.21"
 description: A cannabis plugin with durability, lighting animation, smoking animation, contact high effects, and random high types (bad high, good high, normal high)
-
-commands:
-  testjoints:
-    description: Test joint conversion functionality
-    usage: /testjoints [convert|give]
 ```
 
 ### Configurable Constants
@@ -554,24 +579,82 @@ new BukkitRunnable() {
 
 ## Performance & Optimization
 
-### Cooldown Management
-**Purpose**: Prevent spam and server overload
+### Instant Effect System (v4.7)
+**Revolutionary Performance Improvements**:
 
-**Implementation**:
+**Removed Systems**:
+- ❌ BukkitRunnable scheduling overhead
+- ❌ HashMap-based cooldown tracking
+- ❌ Multi-phase animation delays
+- ❌ Separate effect application timing
+
+**New Architecture**:
+- ✅ Single-method effect application
+- ✅ Immediate response to player interactions
+- ✅ Consolidated particle and sound effects
+- ✅ Simplified code execution path
+
+**Performance Benefits**:
 ```java
+// OLD: Multiple scheduled tasks, cooldown checks, delayed execution
+new BukkitRunnable() {
+    @Override
+    public void run() {
+        // 3-second delay + multiple runnables
+    }
+}.runTaskLater(this, 60L);
+
+// NEW: Instant application
+lightAndSmokeJoint(player, joint); // Everything happens immediately
+```
+
+**JAR Size Optimization**:
+- **v4.6 (with delays)**: 18,411 bytes 
+- **v4.7 (instant system)**: 14,601 bytes (20% reduction)
+- **v4.8 (no commands)**: 12,880 bytes (30% total reduction from v4.6)
+- **Command Removal Benefit**: 1,721 bytes saved (11.8% reduction from v4.7)
+
+### Command System Removal (v4.8)
+**Production-Ready Benefits**:
+
+**Removed Systems**:
+- ❌ All `/testjoints` command handling 
+- ❌ Command registration in plugin.yml
+- ❌ Debug effect application methods
+- ❌ Administrative testing interfaces
+
+**New Architecture**:
+- ✅ Pure event-driven interaction system
+- ✅ Cleaner codebase with no debug artifacts  
+- ✅ Reduced server command overhead
+- ✅ Streamlined plugin initialization
+
+**Security Benefits**:
+```java
+// REMOVED: Potential admin command exploits
+// REMOVED: Direct effect application bypasses  
+// REMOVED: Debug information exposure
+// RESULT: Production-hardened deployment
+```
+
+**Performance Benefits**:
+- **JAR Size**: 11.8% smaller (1,721 bytes saved)
+- **Memory Usage**: Less command registration overhead
+- **Server Load**: No command parsing for `/testjoints`
+- **Code Complexity**: ~150 lines of command handling removed
+
+### Cooldown System (REMOVED in v4.6)
+**Previous Implementation** (now deprecated):
+```java
+// REMOVED: No longer used
 private Map<UUID, Long> smokingCooldowns = new HashMap<>();
 private static final long SMOKING_COOLDOWN = 2000; // 2 seconds
-
-// Cooldown check
-if (smokingCooldowns.containsKey(playerId)) {
-    long lastSmoke = smokingCooldowns.get(playerId);
-    if (currentTime - lastSmoke < SMOKING_COOLDOWN) {
-        long remainingCooldown = (SMOKING_COOLDOWN - (currentTime - lastSmoke)) / 1000;
-        player.sendMessage(ChatColor.RED + "You need to wait " + remainingCooldown + " more seconds before smoking again.");
-        return;
-    }
-}
 ```
+
+**Replacement Philosophy**:
+- **User Experience**: Instant gratification over artificial delays
+- **Stacking System**: Duration extension replaces cooldown prevention
+- **Server Performance**: Less HashMap management, fewer conditional checks
 
 ### Memory Management
 **Efficient Data Structures**:
@@ -623,10 +706,52 @@ if (smokingCooldowns.containsKey(playerId)) {
 - Backward compatibility support
 - Server restart persistence
 
-**Scheduled Task Pattern**:
-- Non-blocking animation system
-- Flexible timing control
-- Resource-efficient implementation
+**Instant Effect Architecture (v4.7)**:
+- Eliminated BukkitRunnable dependencies
+- Single-method execution pattern
+- Consolidated effect application
+- Zero-delay user experience
+
+### Recent Architecture Evolution
+
+**v4.5 → v4.6: Stacking System**:
+```java
+// Added effect duration calculation
+int stackedDuration = remainingTime + (baseDuration / 2);
+int newAmplifier = Math.min(existing.getAmplifier() + 1, 2);
+```
+
+**v4.6 → v4.7: Instant Effects**:
+```java
+// REMOVED: BukkitRunnable delays
+// OLD CODE:
+new BukkitRunnable() {
+    @Override
+    public void run() {
+        smokeJoint(player, joint);
+    }
+}.runTaskLater(this, 60L); // 3-second delay
+
+// NEW CODE: Everything immediate
+player.getWorld().playSound(location, Sound.ITEM_FLINTANDSTEEL_USE, 1.0f, 1.0f);
+player.getWorld().spawnParticle(Particle.FLAME, location, 5, 0.3, 0.3, 0.3, 0.02);
+applyRandomHighEffects(player); // Instant effects
+```
+
+**v4.7 → v4.8: Command Removal**:
+```java
+// REMOVED: Entire onCommand method and all test commands
+// REMOVED: Command registration from plugin.yml
+// REMOVED: Imports for Command and CommandSender
+// BENEFIT: Production-ready deployment without debug features
+```
+
+**Code Simplification Metrics**:
+- **Methods Removed**: `smokeJoint()` (v4.7), `onCommand()` (v4.8)
+- **Lines Reduced**: ~50 lines of BukkitRunnable scheduling + ~100 lines of command handling
+- **Complexity Reduction**: Single-path execution vs multi-phase system, no command processing overhead
+- **Import Cleanup**: Removed Command and CommandSender imports
+- **Production Ready**: No debug commands, clean deployment-ready code
 
 ### API Compatibility Notes
 **Minecraft 1.21 Changes Addressed**:
@@ -669,6 +794,7 @@ public void testPluginClassExists() {
 3. **No Configuration File**: Hard-coded constants
 4. **Limited Customization**: No admin controls for probabilities
 5. **No Database Integration**: No persistent statistics
+6. **No Debug Commands**: Removed for production deployment (testing requires external tools)
 
 ### Future Enhancement Opportunities
 1. **Configuration System**: YAML-based settings
@@ -714,18 +840,18 @@ mvn clean package
 ### Verification Process
 **Console Log Check**:
 ```
-[INFO] === JointMaker 4.5 STARTING (RANDOM HIGH SYSTEM) ===
+[INFO] === JointMaker 4.8 STARTING (NO COMMANDS) ===
 [INFO] JointMaker plugin has been enabled!
 [INFO] Registering events...
 [INFO] Events registered successfully!
-[INFO] === JointMaker 4.5 STARTUP COMPLETE - SPREAD THE LOVE! ===
+[INFO] === JointMaker 4.8 STARTUP COMPLETE - SPREAD THE LOVE! ===
 ```
 
 **In-Game Testing**:
 ```
-/testjoints          # Basic connectivity
-/testjoints joint    # Get test joints
-[Right-click joint]  # Test full functionality
+/plugins                        # Check plugin is loaded
+[Place rotten flesh in inventory] # Test automatic conversion
+[Right-click joint]             # Test full functionality
 ```
 
 ### Configuration Verification
@@ -733,11 +859,11 @@ mvn clean package
 ```
 /plugins
 ```
-Should show: `JointMaker v4.5-RANDOM-HIGHS`
+Should show: `JointMaker v4.8-NO-COMMANDS`
 
 **Permission Setup** (if using permission plugins):
-- Ensure players have access to `/testjoints` command
-- Verify interaction permissions
+- No commands to configure - plugin works automatically
+- Verify player interaction permissions for right-click events
 
 ---
 
@@ -766,7 +892,7 @@ Should show: `JointMaker v4.5-RANDOM-HIGHS`
 - **Causes**: Potion effect conflicts, timing issues
 - **Solutions**:
   - Clear existing effects with `/effect clear`
-  - Use `/testjoints normalhigh` for direct testing
+  - Test with Creative mode rotten flesh items
   - Check for conflicting plugins
 
 **Issue 4: Particles Not Visible**
@@ -775,7 +901,7 @@ Should show: `JointMaker v4.5-RANDOM-HIGHS`
 - **Solutions**:
   - Check client particle settings (All/Decreased/Minimal)
   - Verify server TPS (should be 20.0)
-  - Test with `/testjoints joint` for immediate effects
+  - Test with Creative mode joints for immediate effects
 
 **Issue 5: Contact High Not Working**
 - **Symptoms**: Nearby players unaffected
@@ -784,14 +910,6 @@ Should show: `JointMaker v4.5-RANDOM-HIGHS`
   - Verify players are within 5-block range
   - Test with multiple players simultaneously
   - Check for interference from other plugins
-
-### Debug Commands
-```java
-/testjoints                    // Basic functionality test
-/testjoints convert           // Force conversion test
-/testjoints randomtest        // Probability distribution test
-/testjoints [badhigh|goodhigh|normalhigh]  // Direct effect testing
-```
 
 ### Performance Diagnostics
 **Server Performance Check**:
@@ -809,10 +927,10 @@ Should show: `JointMaker v4.5-RANDOM-HIGHS`
 ### Log Analysis
 **Important Log Messages**:
 ```
-[INFO] === JointMaker 4.5 STARTING (RANDOM HIGH SYSTEM) ===
+[INFO] === JointMaker 4.8 STARTING (NO COMMANDS) ===
 [INFO] Events registered successfully!
-[INFO] === JointMaker 4.5 STARTUP COMPLETE - SPREAD THE LOVE! ===
-[INFO] JointMaker 4.5 has been disabled!
+[INFO] === JointMaker 4.8 STARTUP COMPLETE - SPREAD THE LOVE! ===
+[INFO] JointMaker 4.8 has been disabled!
 ```
 
 **Error Indicators**:
